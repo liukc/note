@@ -116,3 +116,154 @@ public class InitClass{
 - 只能用this 调用一个构造器， 不能调用两个
 - 必须将构造器调用置于最起始处，否则编译会报错
 
+### 4. static 关键字
+
+1. 不可以从static方法内部发出对非static方法的调用。
+2. 在没有任何对象的前提下，我们可针对类本身发出对一个static方法的调用
+3. 一个类之中，先执行static方法，如果有static代码块，先执行static代码块
+
+### 5. 包：库单元
+
+`package my-package; `
+
+package语句必须作为文件的第一个非注释语句出现，该语句的作用是指出这个编译单元属于名为my-package的一个库的一部分
+
+## 第七章、复用类
+
+1. 编译器并不是简单地为每一个引用都创建默认对象，如果想初始化这些引用，可以在代码的以下位置进行
+
+   - 在定义对象的地方。这意味着他们总能在构造器被调用之前被初始化
+   - 在类的构造器中
+   - 就在正要使用这些对象之前，这种方法被称为惰性初始化
+   - 使用实例初始化
+
+   ```java
+   public class GoodMorning{
+       private String str = "再定义对象的地方初始化";
+       private String str2;
+       private String str3;
+       private String str4;
+       
+       public GoodMorning(){
+           str2 = "在类的构造器中初始化";
+       }
+       
+       public String toString(){
+           if(str3 == null){
+               str3 = "惰性初始化";
+           }
+       }
+       {
+           str4 = "实例初始化";
+       }
+   }
+   ```
+
+2. 继承并不只是复制基类的接口，当创建一个导出类的对象时，该对象包含了一个基类的子对象。这个子对象和用基类直接创建的对象是一样的。二者的区别在于，后者来自于外部，而基类的子对象被包装在导出类对象的内部
+
+3. 继承的构建过程是从基类“向外”扩散的，所以基类在导出类构造器可以访问它之前，就已经完成了初始化
+
+4. 代理使类能达到复用的目的
+
+   ```java
+   class Fly{
+       public void forward(); //向前方飞
+       public void down(); //向下飞
+   }
+   
+   
+   public class Bird{
+       private Fly fly;
+       
+       public Bird(){
+           fly = new Fly();
+       }
+       // 使用代理完成飞这个具体动作
+       public void forward(){
+           fly.forward();
+       }
+       public void down(){
+           fly.down();
+       }
+   }
+   ```
+
+   
+
+5. 该用组合还是继承：当需要从新类向基类进行向上转型，就用继承，否则就要考虑组合的情况
+
+
+
+
+
+## 第八章、多态
+
+### 1. 向上转型
+
+```java
+package com.forlkc;
+
+class Upper{
+    private int id;
+
+    public void say(){
+        System.out.println("I am Upper");
+    }
+
+    public Upper(){
+        System.out.println("Upper was initialized");
+    }
+}
+
+public class ConvertUpper extends Upper{
+    private int id;
+
+    public ConvertUpper(){
+        System.out.println("Convert was initialized");
+    }
+    @Override
+    public void say() {
+        System.out.println("I am convertUpper");
+    }
+
+    public void sayHi(){
+        System.out.println("convert say hi");
+    }
+
+    public static void main(String[] args) throws Throwable {
+        Upper convertUpper = new ConvertUpper();
+
+        convertUpper.say();
+        // convertUpper.sayHi();
+
+    }
+}
+```
+
+```cmd
+Upper was initialized
+Convert was initialized
+I am convertUpper
+
+Process finished with exit code 0
+
+```
+
+从运行结果来看，向上转型之后，这个类还是属于子类，他会先初始化父类，再初始化子类，但是只能用父类已有的能继承的方法，如果子类重写了该方法，用的是子类已经重写的方法，而不是父类的方法。所以，向上转型相当于缩小了子类的方法。
+
+## 第九章、接口
+
+1. 接口的方法默认为`public`  如果里面有域的话，默认为 `final` 和 `static`
+
+```java
+package com.forlkc.infa;
+
+public interface Fish {
+    public static final String name = "fish";
+	int a = 2;  // pulic static final
+    void f();// public
+
+    public void m();
+}
+```
+
