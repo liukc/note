@@ -267,3 +267,71 @@ public interface Fish {
 }
 ```
 
+## 第十章、内部类
+
+### 1. 内部类创建
+
+内部类无法直接初始化，需要借助外部类的方法创建内部类的实例
+
+```java
+package com.forlkc;
+
+import java.util.List;
+
+public class OuterClassInnerClass {
+    private String name;
+    class Inner{
+        private String name;
+        public Inner(){
+            ;
+        }
+        public Inner(String s){
+            this.name = s;
+        }
+
+        public void outputName(){
+            System.out.println("Inner class name is : " + name);
+        }
+    }
+    public Inner getInner(String args){
+        return new Inner(args);
+    }
+    public void outputName(){
+        System.out.println("outer name is : " + name);
+    }
+
+    public static void main(String[] args) {
+        OuterClassInnerClass outer = new OuterClassInnerClass();
+        OuterClassInnerClass.Inner inner = outer.getInner("inner");
+        //Inner inner1 = new Inner();
+        // 在拥有外部类对象之前是不能创建内部类对象的。因为内部类会连接到创建它的外部类对象上
+        // 如果，创建的是嵌套类（静态内部类），就不需要对外部类对象的引用
+        OuterClassInnerClass.Inner inner1 = outer.new Inner("inner2");
+
+        outer.outputName();
+        inner.outputName();
+        inner1.outputName();
+    }
+}
+```
+
+## 第十一章、持有对象
+
+### 1. List
+
+List 承诺可以将元素维护在特定的序列之中
+
+有两种类型的List：
+
+- ArrayList：长于随机访问元素，但在List的中间插入和移除元素比较慢
+- LinkedList：它在List中间插入和删除元素的代价比较低，提供了优化的顺序访问。LinkedList 在随机访问方面相对比较慢，但是它的特性集较ArrayList更大
+
+### 2. Iterator
+
+Java的iterator只能单向移动，且它只能用来：
+
+1. 使用方法iterator() 要求容器返回一个iterator。iterator将准备好返回序列的第一个元素
+2. 使用next() 获得序列中的下一个元素
+3. 使用hasNext() 检查序列中是否还有元素
+4. 使用remove() 将迭代器新近返回的元素删除
+5. 
