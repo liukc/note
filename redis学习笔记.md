@@ -803,87 +803,109 @@ Redis 有两种类型分区。 假设有4个Redis实例 R0，R1，R2，R3，和�
 
 需要下载驱动包 [**下载 jedis.jar**](https://mvnrepository.com/artifact/redis.clients/jedis)，确保下载最新驱动包。在classpath 中包含该驱动包。
 
-```java
-import redis.clients.jedis.Jedis;
- 
-public class RedisJava {
-    public static void main(String[] args) {
-        //连接本地的 Redis 服务
-        Jedis jedis = new Jedis("localhost");
-        System.out.println("连接成功");
-        //查看服务是否运行
-        System.out.println("服务正在运行: "+jedis.ping());
-    }
-}
+### 1. 配置maven
+
+```xml
+<!-- https://mvnrepository.com/artifact/redis.clients/jedis -->
+    <dependency>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+      <version>2.9.0</version>
+    </dependency>
 ```
 
-Redis Java List(列表) 实例
+### 2. 测试连接
 
 ```java
-import java.util.List;
+package cn.forlkc;
+
+import static org.junit.Assert.assertTrue;
+import org.junit.Test;
 import redis.clients.jedis.Jedis;
- 
-public class RedisListJava {
-    public static void main(String[] args) {
-        //连接本地的 Redis 服务
-        Jedis jedis = new Jedis("localhost");
-        System.out.println("连接成功");
-        //存储数据到列表中
-        jedis.lpush("site-list", "Runoob");
-        jedis.lpush("site-list", "Google");
-        jedis.lpush("site-list", "Taobao");
-        // 获取存储的数据并输出
-        List<String> list = jedis.lrange("site-list", 0 ,2);
-        for(int i=0; i<list.size(); i++) {
-            System.out.println("列表项为: "+list.get(i));
+
+/**
+ * Unit test for simple App.
+ */
+public class AppTest 
+{
+    @Test
+    public void connectRedisTest(){
+        String host = "192.168.164.141";
+        int port = 6379;
+        Jedis jedis = new Jedis(host, port);
+        jedis.auth("P@ssw0rd");
+        System.out.println(jedis.ping());
+        jedis.close();
+    }
+}
+
+```
+
+备注：如果连接不成功可能是虚拟机端口号没开放
+
+```c
+//获取活动区域
+firewall-cmd --get-active-zones
+// 查询端口号
+firewall-cmd --query-port=6379/tcp
+
+// 若返回no
+// 开通端口
+firewall-cmd --zone=public --add-port=6379/tcp --permanent
+
+// 重启防火墙
+firewall-cmd --reload
+```
+
+### 3. 功能测试
+
+```java
+ @Test
+    public void connectRedisTest(){
+        String host = "192.168.164.141";
+        int port = 6379;
+        Jedis jedis = new Jedis(host, port);
+        jedis.auth("P@ssw0rd");
+        jedis.lpush("site_list", "forlkc");
+        jedis.lpush("site_list", "cn");
+        List<String> list = jedis.lrange("site_list",0, 10);
+        for (String site: list){
+            System.out.println(site);
         }
+
+        jedis.close();
     }
-}
 ```
 
-
-
-编译以上程序。
-
-```
-连接成功
-列表项为: Taobao
-列表项为: Google
-列表项为: Runoob
-```
-
-------
-
-Redis Java Keys 实例
+### 4. jedis 连接池
 
 ```java
-import java.util.Iterator;
-import java.util.Set;
+package cn.forlkc.tools;
+
 import redis.clients.jedis.Jedis;
- 
-public class RedisKeyJava {
-    public static void main(String[] args) {
-        //连接本地的 Redis 服务
-        Jedis jedis = new Jedis("localhost");
-        System.out.println("连接成功");
- 
-        // 获取数据并输出
-        Set<String> keys = jedis.keys("*"); 
-        Iterator<String> it=keys.iterator() ;   
-        while(it.hasNext()){   
-            String key = it.next();   
-            System.out.println(key);   
-        }
+import redis.clients.jedis.JedisPool;
+import redis.clients.jedis.JedisPoolConfig;
+
+public class RedisConnectorTool {
+    private static JedisPool jedisPool;
+    static {
+        JedisPoolConfig jedisPoolConfig = new JedisPoolConfig();
+        jedisPoolConfig.setMaxTotal(10); // 设置最大连接数为10
+        jedisPoolConfig.setMaxIdle(10);  // 设置最大空闲数为10
+        String host = "192.168.164.141"; // 主机IP
+        int port = 6379;                 // 主机端口号
+        jedisPool = new JedisPool(jedisPoolConfig, host, port);
+    }
+
+    public static Jedis getJedis(){
+        Jedis jedis = jedisPool.getResource();
+        jedis.auth("P@ssw0rd");
+        return jedis;
+    }
+
+    public static void closeJedis(Jedis jedis){
+        jedis.close();
     }
 }
 ```
 
-
-
-编译以上程序。
-
-```
-连接成功
-runoobkey
-site-list
-```
