@@ -334,4 +334,56 @@ Java的iterator只能单向移动，且它只能用来：
 2. 使用next() 获得序列中的下一个元素
 3. 使用hasNext() 检查序列中是否还有元素
 4. 使用remove() 将迭代器新近返回的元素删除
-5. 
+
+
+
+
+
+## 第十四章、类型信息
+
+类的初始化有效地实现了尽可能的“惰性”，在仅使用<类>.class 语法来获得对类的引用不会引发初始化。但是为了产生Class引用，<code>Class.forName()</code> 立即就进行了初始化
+
+如果一个static final 值是“编译期常量” 那么这个值不需要对他所寄存的类进行初始化就可以被读取
+
+如果一个是static域而不是final ，那么对他访问时，总是要求在它被读取之前，要先进行链接（为这个域分配空间）和初始化（初始化该存储空间）
+
+
+
+
+
+## 第十五章、泛型
+
+```java
+package basicJava;
+
+public class LinkStack<T> {
+    private static class Node<U>{
+        private U item;
+        private Node next;
+
+        public Node(){
+            item = null;
+            next = null;
+        }
+        public Node(U item, Node top){
+            this.item = item;
+            this.next = top;
+        }
+        boolean end(){
+            return this.item == null && this.next == null;
+        }
+    }
+    private Node<T> top = new Node<T>(); //末端哨兵
+    public void push(T item){
+        top = new Node<T>(item, top);
+    }
+
+    public T pop(){
+        T result = top.item;
+        if (!top.end())
+            top = top.next;
+        return result;
+    }
+}
+```
+
