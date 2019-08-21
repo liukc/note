@@ -54,6 +54,116 @@
 
    需要实现 `Run()` 方法，通过 `Thread` 调用 `start()` 方法来启动线程
 
+   ```java
+package basicJava;
    
+   public class ImpRunnable implements Runnable {
+       public void run() {
+           System.out.println("132");
+       }
+   
+       public static void main(String[] args) {
+           ImpRunnable impRunnable = new ImpRunnable();
+           Thread thread = new Thread(impRunnable);
+   
+           thread.start();
+       }
+   }
+   ```
+   
+2. 实现 `Callable` 接口
+
+   与 `Runnable` 接口相比， `Callable` 接口可以有返回值，返回值通过 `FutureTask` 进行封装
+
+   ```java
+   package basicJava;
+   
+   import java.util.concurrent.Callable;
+   import java.util.concurrent.ExecutionException;
+   import java.util.concurrent.FutureTask;
+   
+   public class ImpCallable implements Callable<Integer> {
+       public Integer call() throws Exception {
+           System.out.println("123");
+           return 123;
+       }
+   
+       public static void main(String[] args) throws ExecutionException, InterruptedException {
+           ImpCallable impRunnable = new ImpCallable();
+   
+           FutureTask<Integer> futureTask = new FutureTask<Integer>(impRunnable);
+           Thread thread = new Thread(futureTask);
+   
+           thread.start();
+           System.out.println(futureTask.get());
+       }
+   }
+   ```
+
+3. 继承 `Thread` 类
+
+   同样需要实现 `run()` 方法，因为 `Thread` 也实现了 `Runnable` 接口
+
+   当调用 `start()` 方法启动一个线程时，虚拟机会将该线程放入就绪队列中等待被调度，当一个线程被执行时会执行该线程的 `run()` 方法
+
+   ```java
+   package basicJava;
+   
+   public class ExtThread extends Thread{
+   
+       @Override
+       public void run(){
+           System.out.println("123");
+       }
+   
+       public static void main(String[] args) {
+           ExtThread extThread = new ExtThread();
+   
+           extThread.start();
+       }
+   }
+   ```
+
+4. 实现接口 vs 继承 `Thread`
+
+   - 实现接口会好一些，因为Java不允许多重继承，继承了 `Thread` 类后无法继承其他的类，但是java支持实现多个接口
+   - 类可能只要求可执行就行，继承整个 `Thread` 类开销过大
+
+### 3. 基础线程机制
+
+1. Executor
+
+   Executor 管理多个异步任务的执行，而无需程序员显式地管理线程的生命周期。（这里的异步是指多个任务的执行互不干扰，不需要进行同步操作）
+
+   主要有三种 Executor：
+
+   - `CachedThreadPool` :一个任务创建一个线程
+   - `FixedThreadPool` :所有任务只能使用固定大小的线程
+   - `SingleThreadExecutor`  :相当于大小为 1 的 `FixedThreadPool`
+
+   ```java
+   package basicJava;
+   
+   import java.util.concurrent.ExecutorService;
+   import java.util.concurrent.Executors;
+   
+   public class ExtThread extends Thread{
+   
+       @Override
+       public void run(){
+           System.out.println("123");
+       }
+   
+       public static void main(String[] args) {
+           ExecutorService executorService = Executors.newCachedThreadPool();
+           for(int i = 0 ; i < 5; i++){
+               executorService.execute(new ExtThread());
+           }
+           executorService.shutdown();
+       }
+   }
+   ```
 
    
+
+2. Daemon
