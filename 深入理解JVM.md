@@ -54,7 +54,114 @@ Java堆是被所有线程共享的一块内存区域，在虚拟机启动时创�
 
 本机直接内存的分配不会受到Java堆大小的限制，但是，既然是内存，则肯定还是会受到本机总内存（包括物理内存、SWAP分区或者分页文件）大小以及处理器寻址空间的限制，一般服务器管理员配置虚拟机参数时，会根据实际内存去设置-Xmx等参数信息，但经常忽略掉直接内存，使得各个内存区域总和大于物理内存限制（包括物理的和操作系统级的限制），从而导致动态扩展时出现OutOfMemoryError异常。
 
-### HotSpot虚拟机对象探秘
+### 垃圾收集器与内存分配策略
 
-#### 对象的创建
+#### Java 判断对象是否生存
+
+##### 引用计数法算法
+
+在对象中添加一个引用计数器，每当有一个地方引用它时，计数器值就加一；当引用失效时，计数器值就减一；任何时刻计数器为零的对象就是不可能再被使用的
+
+缺点：循环引用回收不了
+
+##### 可达性分析算法
+
+![image-20200403095444252](深入理解JVM.assets/image-20200403095444252.png)
+
+通过一系列称为“GC Roots”的根对象作为起始节点集，从这些节点开始，根据引用关系向下搜索，搜索过程所走过的路径称为“引用链”（Reference Chain），如果某个对象到GC Roots间没有任何引用链相连，或者用图论的话来说就是从GC Roots到这个对象不可达时，则证明此对象是不可能再被使用的
+
+Java 中大多数主流虚拟机就是使用可达性分析算法：
+
+```java
+/**
+ * VM Args: -XX:+PrintGCDetails
+ */
+public class ReferenceCountingGC {
+
+    public Object instance = null;
+    private static final int _1MB = 1024 * 1024;
+    // 占用内存
+    private byte[] bigSize = new byte[2 * _1MB];
+
+    public static void main(String[] args) {
+        ReferenceCountingGC referenceCountingGC = new ReferenceCountingGC();
+        ReferenceCountingGC referenceCountingGC1 = new ReferenceCountingGC();
+        referenceCountingGC.instance = referenceCountingGC1;
+        referenceCountingGC1.instance = referenceCountingGC;
+
+        referenceCountingGC = null;
+        referenceCountingGC1 = null;
+
+        System.gc();
+    }
+}
+```
+
+```c
+[GC (System.gc()) [PSYoungGen: 9351K->744K(76288K)] 9351K->752K(251392K), 0.0009492 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+[Full GC (System.gc()) [PSYoungGen: 744K->0K(76288K)] [ParOldGen: 8K->624K(175104K)] 752K->624K(251392K), [Metaspace: 3224K->3224K(1056768K)], 0.0037176 secs] [Times: user=0.00 sys=0.00, real=0.00 secs] 
+Heap
+ PSYoungGen      total 76288K, used 655K [0x000000076b200000, 0x0000000770700000, 0x00000007c0000000)
+  eden space 65536K, 1% used [0x000000076b200000,0x000000076b2a3ee8,0x000000076f200000)
+  from space 10752K, 0% used [0x000000076f200000,0x000000076f200000,0x000000076fc80000)
+  to   space 10752K, 0% used [0x000000076fc80000,0x000000076fc80000,0x0000000770700000)
+ ParOldGen       total 175104K, used 624K [0x00000006c1600000, 0x00000006cc100000, 0x000000076b200000)
+  object space 175104K, 0% used [0x00000006c1600000,0x00000006c169c1d8,0x00000006cc100000)
+ Metaspace       used 3231K, capacity 4496K, committed 4864K, reserved 1056768K
+  class space    used 350K, capacity 388K, committed 512K, reserved 1048576K
+
+Process finished with exit code 0
+```
+
+在Java技术体系里面，固定可作为GC Roots的对象包括以下几种：
+
+-   在虚拟机栈（栈帧中的本地变量表）中引用的对象，譬如各个线程被调用的方法堆栈中使用到的参数、局部变量、临时变量等。
+-   在方法区中类静态属性引用的对象，譬如Java类的引用类型静态变量。
+-   在方法区中常量引用的对象，譬如字符串常量池（String Table）里的引用。
+-   在本地方法栈中JNI（即通常所说的Native方法）引用的对象。
+-   Java虚拟机内部的引用，如基本数据类型对应的Class对象，一些常驻的异常对象（比如NullPointExcepiton、OutOfMemoryError）等，还有系统类加载器。
+-   所有被同步锁（synchronized关键字）持有的对象。
+-   反映Java虚拟机内部情况的JMXBean、JVMTI中注册的回调、本地代码缓存等。
+
+#### 垃圾收集算法
+
+##### 标记-清除算法
+
+算法分为“标记”和“清除”两个阶段：首先标记出所有需要回收的对象，在标记完成后，统一回收掉所有被标记的对象，也可以反过来，标记存活的对象，统一回收所有未被标记的对象
+
+缺点：
+
+-   执行效率不稳定，如果Java堆中包含大量对象，而且其中大部分是需要被回收的，这时必须进行大量标记和清除的动作，导致标记和清除两个过程的执行效率都随对象数量增长而降低
+-   内存空间的碎片化问题，标记、清除之后会产生大量不连续的内存碎片，空间碎片太多可能会导致当以后在程序运行过程中需要分配较大对象时无法找到足够的连续内存而不得不提前触发另一次垃圾收集动作
+
+##### 标记-复制算法
+
+它将可用内存按容量划分为大小相等的两块，每次只使用其中的一块。当这一块的内存用完了，就将还存活着的对象复制到另外一块上面，然后再把已使用过的内存空间一次清理掉。
+
+如果内存中多数对象都是存活的，这种算法将会产生大量的内存间复制的开销，但对于多数对象都是可回收的情况，算法需要复制的就是占少数的存活对象，而且每次都是针对整个半区进行内存回收，分配内存时也就不用考虑有空间碎片的复杂情况，只要移动堆顶指针，按顺序分配即可。这样实现简单，运行高效
+
+缺点：
+
+-   复制回收算法的代价是将可用内存缩小为了原来的一半，空间浪费过多
+-   对象存活率较高时就要进行较多的复制操作，效率将会降低
+
+**Appel式回收**
+
+新生代分为一块较大的Eden空间和两块较小的Survivor空间，每次分配内存只使用Eden和其中一块Survivor。发生垃圾搜集时，将Eden和Survivor中仍然存活的对象一次性复制到另外一块Survivor空间上，然后直接清理掉Eden和已用过的那块Survivor空间。
+
+HotSpot虚拟机默认Eden和Survivor的大小比例是8∶1
+
+任何人都没有办法百分百保证每次回收都只有不多于10%的对象存活，因此Appel式回收还有一个充当罕见情况的“逃生门”的安全设计，当Survivor空间不足以容纳一次Minor GC之后存活的对象时，就需要依赖其他内存区域（实际上大多就是老年代）进行分配担保（Handle Promotion）。
+
+缺点：
+
+-   需要有额外的空间进行分配担保，以应对被使用的内存中所有对象都100%存活的极端情况
+
+##### 标记-整理算法
+
+针对老年代对象的存亡特征，由Edward Lueders提出了另外一种有针对性的“标记-整理”算法，其中的标记过程仍然与“标记-清除”算法一样，但后续步骤不是直接对可回收对象进行清理，而是让所有存活的对象都向内存空间一端移动，然后直接清理掉边界以外的内存
+
+缺点：
+
+-   在老年代这种每次回收都有大量对象存活区域，移动存活对象并更新所有引用这些对象的地方将会是一种极为负重的操作，而且这种对象移动操作必须全程暂停用户应用程序才能进行
 
