@@ -287,3 +287,51 @@ G1收集器之所以能建立可预测的停顿时间模型，是因为它将Reg
     safepoint
 -   查看收集器Ergonomics机制（自动设置堆空间各分代区域大小、收集目标等内容，从Parallel收集器开始支持）自动调节的相关信息。在JDK 9之前使用-XX：+PrintAdaptiveSizePolicy，JDK 9之后使用-Xlog：gc+ergo*=trace
 -   查看熬过收集后剩余对象的年龄分布信息，在JDK 9前使用-XX：+PrintTenuring-Distribution，JDK 9之后使用-Xlog：gc+age=trace
+
+### 虚拟机性能监控、故障处理工具
+
+#### 基础故障处理工具
+
+##### jps：虚拟机进程状况工具
+
+功能类似Linux的ps
+
+jps 命令格式：`jps [ options ] [ hostid ]`
+
+![image-20200407175826013](深入理解JVM.assets/image-20200407175826013.png)
+
+![image-20200407175852787](深入理解JVM.assets/image-20200407175852787.png)
+
+##### jstat: 虚拟机统计信息监视工具
+
+jstat（JVM Statistics Monitoring Tool）是用于监视虚拟机各种运行状态信息的命令行工具
+
+jstat命令格式为：`jstat [ option vmid [interval[s|ms] [count]] ]`
+
+如果是远程虚拟机进程，那VMID的格式应当是：`[protocol:][//]lvmid[@hostname[:port]/servername]`
+
+参数interval和count代表查询间隔和次数，如果省略这2个参数，说明只查询一次
+
+![image-20200407181517274](深入理解JVM.assets/image-20200407181517274.png)
+
+![image-20200407181530071](深入理解JVM.assets/image-20200407181530071.png)
+
+S0: Survivor0，S1: Survicor1, E: Eden, 
+
+O: Old, M: Metaspace, CCS: Compressed class space(压缩类空间利用率为百分比), 
+
+YGC: Minor GC, YGCT: Minor GC Time, 
+
+FGC: Full GC, FGCT: Full GC Time, 
+
+GCT: Total GC Time
+
+##### jinfo：Java配置信息工具
+
+jinfo（Configuration Info for Java）的作用是实时查看和调整虚拟机各项参数
+
+jinfo命令格式：`jinfo [ option ] pid`
+
+![image-20200407183026657](深入理解JVM.assets/image-20200407183026657.png)
+
+JDK 6之后，可以使用-flag[+|-]name或者-flag name=value在运行期修改一部分运行期可写的虚拟机参数值
