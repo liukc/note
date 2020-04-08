@@ -335,3 +335,40 @@ jinfo命令格式：`jinfo [ option ] pid`
 ![image-20200407183026657](深入理解JVM.assets/image-20200407183026657.png)
 
 JDK 6之后，可以使用-flag[+|-]name或者-flag name=value在运行期修改一部分运行期可写的虚拟机参数值
+
+##### jmap：Java内存映像工具
+
+获取Java堆转储快照的方法：
+
+-   -XX：+HeapDumpOnOutOfMemoryError，该参数可以让虚拟机在内存溢出异常出现之后自动生成堆转储
+    快照文件
+-   -XX：+HeapDumpOnCtrlBreak，该参数则可以使用[Ctrl]+[Break]键让虚拟机生成堆转储快照文件
+-   Linux系统下通过Kill-3命令发送进程退出信号
+-   jmap -dump vmid
+
+jmap的作用并不仅仅是为了获取堆转储快照，它还可以查询finalize执行队列、Java堆和方法区的详细信息，如空间使用率、当前用的是哪种收集器等
+
+jmap命令格式：`jmap [ option ] vmid`
+
+![image-20200408091332355](深入理解JVM.assets/image-20200408091332355.png)
+
+![image-20200408091705031](深入理解JVM.assets/image-20200408091705031.png)
+
+##### jhat：虚拟机堆转储快照分析工具
+
+JDK提供jhat（JVM Heap Analysis Tool）命令与jmap搭配使用，来分析jmap生成的堆转储快照。jhat内置了一个微型的HTTP/Web服务器，生成堆转储快照的分析结果后，可以在浏览器中查看。
+
+​        在实际工作中，多数人是不会直接使用jhat命令来分析堆转储快照文件的，主要原因有两个方面。一是一般不会在部署应用程序的服务器上直接分析堆转储快照，即使可以这样做，也会尽量将堆转储快照文件复制到其他机器上进行分析，因为分析工作是一个耗时而且极为耗费硬件资源的过程，既然都要在其他机器上进行，就没有必要再受命令行工具的限制了。另外一个原因是jhat的分析功能相对来说比较简陋，VisualVM，以及专业用于分析堆转储快照文件的Eclipse Memory Analyzer、IBM HeapAnalyzer等工具，都能实现比jhat更强大专业的分析功能。
+
+![image-20200408092552359](深入理解JVM.assets/image-20200408092552359.png)
+
+##### jstack：Java堆栈跟踪工具
+
+jstack（Stack Trace for Java）命令用于生成虚拟机当前时刻的线程快照（一般称为threaddump或者javacore文件）。线程快照就是当前虚拟机内每一条线程正在执行的方法堆栈的集合，生成线程快照的目的通常是定位线程出现长时间停顿的原因，如线程间死锁、死循环、请求外部资源导致的长时间挂起等，都是导致线程长时间停顿的常见原因。线程出现停顿时通过jstack来查看各个线程的调用堆栈，就可以获知没有响应的线程到底在后台做些什么事情，或者等待着什么资源。
+
+jstack命令格式：`jstack [ option ] vmid`
+
+![image-20200408093034699](深入理解JVM.assets/image-20200408093034699.png)
+
+![image-20200408093910323](深入理解JVM.assets/image-20200408093910323.png)
+
